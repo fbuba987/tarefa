@@ -3,6 +3,8 @@ package com.generation.todolist.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,8 +20,10 @@ import org.springframework.http.ResponseEntity;
 
 import com.generation.todolist.model.Tarefa;
 import com.generation.todolist.repository.TarefaRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import javax.validation.Valid;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -47,6 +51,12 @@ public class TarefaControllerTest {
 
     }
 
+    @GetMapping
+    public ResponseEntity<List<Tarefa>> getAll (){
+
+        return ResponseEntity.ok(tarefaRepository.findAll());
+    }
+
     @Test
     @DisplayName("Listar uma Tarefa Específica")
     public void deveListarApenasUmaTarefa() {
@@ -59,11 +69,33 @@ public class TarefaControllerTest {
         assertEquals(HttpStatus.OK, resposta.getStatusCode());
 
     }
-
     @GetMapping("/{id}")
     public ResponseEntity<Tarefa> getById(@PathVariable Long id) {
         return tarefaRepository.findById(id)
                 .map(resposta -> ResponseEntity.ok(resposta))
                 .orElse(ResponseEntity.notFound().build());
     }
+    @GetMapping("/nome/{nome}")
+    public ResponseEntity<List<Tarefa>> getByNome(@PathVariable String nome){
+        return ResponseEntity.ok(tarefaRepository.findAllByNomeContainingIgnoreCase(nome));
+    }
+
+    @PutMapping
+    public ResponseEntity<Tarefa> putPostagem (@Valid @RequestBody Tarefa tarefa){
+        return tarefaRepository.findById((tarefa.getId()))
+                .map(resposta -> ResponseEntity.status(HttpStatus.OK)
+                        .body(tarefaRepository.save(tarefa)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
+
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable long id) {
+        Optional<Tarefa> postagem = tarefaRepository.findById(id);
+
+        if(postagem.isEmpty())
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        tarefaRepository.deleteById(id);
+    }
+
 }
